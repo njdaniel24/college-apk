@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f7a4d"><link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png"><title>Hostel Meals</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1f2a24;--mut:#6b756f;--acc:#1f7a4d;--no:#c0392b;--bd:#e2ded4}
+@media (prefers-color-scheme:dark){:root{--bg:#141a17;--card:#1d2621;--ink:#eef2ee;--mut:#9aa6a0;--acc:#3fb77c;--no:#e5675a;--bd:#2c3832}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.w{max-width:480px;margin:0 auto;padding:16px}h1{font-size:22px;margin:4px 0 2px}.s{color:var(--mut);font-size:14px;margin:0 0 14px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+input,select{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--ink);font-size:16px;margin-bottom:10px}
+.go{width:100%;padding:14px;border:0;border-radius:12px;background:var(--acc);color:#fff;font-size:17px;font-weight:600}
+.lk{background:none;border:0;color:var(--acc);font-size:15px;padding:8px;width:100%}
+.top{display:flex;justify-content:space-between;align-items:center}.top button{background:none;border:1px solid var(--bd);color:var(--ink);border-radius:8px;padding:6px 10px}
+.m{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--bd)}.m:first-child{border-top:0}
+.m span{display:block;color:var(--mut);font-size:12px}.t{display:flex;gap:6px}
+.t button{padding:9px 14px;border-radius:999px;border:1px solid var(--bd);background:var(--bg);color:var(--ink)}
+.t .y.on{background:var(--acc);color:#fff}.t .n.on{background:var(--no);color:#fff}
+.msg{text-align:center;margin:10px 0;font-size:14px;color:var(--acc)}.err{color:var(--no)}
+.cnt{display:flex;gap:8px}.cnt div{flex:1;text-align:center;background:var(--bg);border-radius:10px;padding:10px}.cnt strong{font-size:24px;display:block;color:var(--acc)}.cnt small{color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:7px 4px;text-align:center;border-top:1px solid var(--bd)}th:first-child,td:first-child{text-align:left}.ok{color:var(--acc)}.x{color:var(--no)}
+</style></head><body><div class="w">
+
+<div id="login" hidden><h1>🍽️ Hostel Meals</h1><p class="s">Login to request your meals.</p><div class="c">
+<div id="su" hidden><label>Full name</label><input id="name" autocomplete="name">
+<label>Department</label><select id="dept"><option value="">Select department</option><option>CSE</option><option>AIDS</option><option>AIML</option><option>CYBER</option><option>EEE</option><option>ECE</option><option>IT</option><option>MECH</option><option>FT</option></select>
+<label>Year</label><select id="year"><option value="">Select year</option><option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option><option value="4">4th year</option></select></div>
+<label>Email</label><input id="email" type="email" autocomplete="email"><label>Password (min 6 characters)</label><input id="pw" type="password" autocomplete="current-password">
+<button class="go" id="lg">Login</button><button class="lk" id="tg">New student? Create account</button><div class="msg" id="lm"></div></div></div>
+
+<div id="stu" hidden><div class="top"><div><h1>🍽️ Meal Request</h1><p class="s" id="who"></p></div><button class="out">Logout</button></div>
+<div class="c"><label>Date</label><input type="date" id="date" style="margin:0"></div><div class="c" id="meals"></div>
+<button class="go" id="sub">Submit Request</button><div class="msg" id="msg"></div></div>
+
+<div id="war" hidden><div class="top"><div><h1>👨‍🍳 Warden</h1><p class="s">Meal requests</p></div><button class="out">Logout</button></div>
+<div class="c"><label>Date</label><input type="date" id="wdate" style="margin:0"></div>
+<div class="c"><div class="cnt" id="cnt"></div></div>
+<div class="c" style="overflow-x:auto"><table><thead><tr><th>Student</th><th>B</th><th>L</th><th>D</th></tr></thead><tbody id="rows"></tbody></table><div class="msg" id="wmsg"></div></div></div>
+</div>
+<script>
+/* ⬇️⬇️ STEP: paste your Apps Script "/exec" URL below (see README — Google Sheets backend) ⬇️⬇️ */
+const API_URL="PASTE_YOUR_WEB_APP_URL_HERE",SECRET="hm2026";
+const $=i=>document.getElementById(i),DAY=864e5;
+const T1={b:"8:00 AM",l:"12:00 PM",d:"7:00 PM"},T2={b:"8:30 AM",l:"1:00 PM",d:"7:30 PM"},M=[["b","Breakfast"],["l","Lunch"],["d","Dinner"]];
+const sel={b:null,l:null,d:null};let prof=null,signup=false,busy=false,wt=null;
+const iso=t=>new Date(t).toISOString().slice(0,10);
+$("date").value=$("wdate").value=iso(Date.now()+DAY);$("date").min=iso(Date.now());
+function show(id){["login","stu","war"].forEach(x=>$(x).hidden=x!==id)}
+function lm(t,bad){$("lm").textContent=t;$("lm").className="msg"+(bad?" err":"")}
+async function api(action,params,body){const u=new URL(API_URL);u.searchParams.set("action",action);u.searchParams.set("secret",SECRET);
+ for(const k in(params||{}))u.searchParams.set(k,params[k]);
+ const r=await fetch(u,body?{method:"POST",body:JSON.stringify(body)}:{});return r.json()}
+$("tg").onclick=()=>{signup=!signup;$("su").hidden=!signup;$("lg").textContent=signup?"Create account":"Login";$("tg").textContent=signup?"Have an account? Login":"New student? Create account";lm("")};
+$("lg").onclick=async()=>{const e=$("email").value.trim(),p=$("pw").value;if(!e||!p)return lm("Enter email and password.",1);
+ if(API_URL.indexOf("PASTE_")===0)return lm("App not configured yet — paste the Apps Script URL in the code.",1);
+ try{busy=true;
+  if(signup){const n=$("name").value.trim(),d=$("dept").value,y=$("year").value;if(!n||!d||!y){busy=false;return lm("Fill name, department and year.",1)}
+   const r=await api("signup",null,{email:e,password:p,name:n,dept:d,year:y});busy=false;if(!r.ok)throw new Error(r.error);prof=r.user}
+  else{const r=await api("login",{email:e,password:p});busy=false;if(!r.ok)throw new Error(r.error);prof=r.user}
+  localStorage.setItem("hm_session",JSON.stringify(prof));enter()}
+ catch(x){busy=false;lm((x&&x.message)||"Network error. Check internet.",1)}};
+document.querySelectorAll(".out").forEach(b=>b.onclick=()=>{localStorage.removeItem("hm_session");prof=null;if(wt){clearInterval(wt);wt=null}show("login")});
+(async function boot(){const s=localStorage.getItem("hm_session");if(!s)return show("login");
+ try{const r=await api("me",{email:JSON.parse(s).email});if(!r.ok)throw 0;prof=r.user;enter()}
+ catch(e){localStorage.removeItem("hm_session");show("login")}})();
+function enter(){if(prof.admin){show("war");wardenStart()}else{$("who").textContent=prof.name+" · "+prof.dept+" · Year "+prof.year;show("stu");draw();loadDay()}}
+const tm=k=>(prof.year==="1"?T1:T2)[k];
+function draw(){$("meals").innerHTML=M.map(([k,n])=>`<div class="m"><div><b>${n}</b><span>${tm(k)}</span></div><div class="t"><button class="y ${sel[k]===1?"on":""}" data-k="${k}" data-v="1">Yes</button><button class="n ${sel[k]===0?"on":""}" data-k="${k}" data-v="0">No</button></div></div>`).join("")}
+$("meals").onclick=e=>{const b=e.target.closest("button");if(b){sel[b.dataset.k]=+b.dataset.v;draw()}};
+const say=(t,bad)=>{$("msg").textContent=t;$("msg").className="msg"+(bad?" err":"")};
+async function loadDay(){try{const r=await api("day",{email:prof.email,date:$("date").value});if(!r.ok)throw new Error(r.error);
+ if(r.meal){sel.b=r.meal.b;sel.l=r.meal.l;sel.d=r.meal.d;say("Already submitted. You can update it.")}else{sel.b=sel.l=sel.d=null;say("")}draw()}catch(e){say(e.message,1)}}
+$("date").onchange=loadDay;
+$("sub").onclick=async()=>{if(M.some(([k])=>sel[k]===null))return say("Choose Yes or No for all three meals.",1);
+ const d=$("date").value;try{const r=await api("submit",null,{date:d,email:prof.email,name:prof.name,dept:prof.dept,year:prof.year,b:sel.b,l:sel.l,d:sel.d});
+ if(!r.ok)throw new Error(r.error);say("✅ Submitted!")}catch(e){say("Failed: "+e.message,1)}};
+async function wardenStart(){await renderWarden();if(wt)clearInterval(wt);wt=setInterval(renderWarden,10000)}
+$("wdate").onchange=renderWarden;
+async function renderWarden(){try{const r=await api("warden",{date:$("wdate").value});if(!r.ok)throw new Error(r.error);
+ const L=(r.rows||[]).slice().sort((a,b)=>(""+a.year+a.dept+a.name).localeCompare(""+b.year+b.dept+b.name));
+ $("cnt").innerHTML=M.map(([k,n])=>`<div><strong>${L.filter(x=>x[k]===1).length}</strong><small>${n}</small></div>`).join("");
+ $("rows").innerHTML=L.map(x=>`<tr><td>${x.name} (${x.dept}, Yr ${x.year})</td>${"bld".split("").map(k=>`<td class="${x[k]?"ok":"x"}">${x[k]?"✔":"✖"}</td>`).join("")}</tr>`).join("");
+ $("wmsg").textContent=L.length?L.length+" responses":"No responses yet."}catch(e){$("wmsg").textContent=e.message}}
+</script></body></html>
